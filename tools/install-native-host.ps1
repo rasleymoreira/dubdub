@@ -92,7 +92,7 @@ if ($ExtensionId -notmatch '^[a-p]{32}$') { throw "ID invalido: $ExtensionId" }
 # --- manifesto do host ---------------------------------------------------------
 $manifest = [ordered]@{
     name            = $HOST_NAME
-    description     = 'Liga e desliga o servidor Piper da extensao Udemy Dub'
+    description     = 'Liga e desliga o servidor Piper da extensao dubdub'
     path            = $batPath
     type            = 'stdio'
     allowed_origins = @("chrome-extension://$ExtensionId/")

@@ -6,7 +6,7 @@
 
 ## Projeto
 
-name: Udemy Dub PT-BR
+name: dubdub
 description: Extensao Chrome que dubla aulas da Udemy de ingles para portugues e troca o audio do player na reproducao.
 tone: tecnico, direto, sem enfeite
 

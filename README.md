@@ -1,4 +1,4 @@
-# Udemy Dub PT-BR
+# dubdub
 
 Extensão Chrome (MV3) que dubla aulas da Udemy para português. Você clica em **Dublar esta
 aula**, a extensão gera o áudio e, ao dar play, o canal de voz original é substituído pela
