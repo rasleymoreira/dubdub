@@ -104,6 +104,12 @@ export default tseslint.config(
   },
 
   {
+    // o unico lugar autorizado a falar com o console e o adapter de log
+    files: ['src/infrastructure/logging/**/*.ts'],
+    rules: { 'no-console': 'off' }
+  },
+
+  {
     files: ['tests/**/*.ts', 'scripts/**/*.mjs', 'eslint.config.mjs'],
     languageOptions: {
       globals: {
