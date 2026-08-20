@@ -2,7 +2,7 @@
 
 # Design system deste projeto. Edite à vontade.
 
-# Gerado em: 2026-08-17
+# Gerado em: 2026-08-17 (stack atualizada em 2026-08-20)
 
 ## Projeto
 
@@ -12,8 +12,8 @@ tone: tecnico, direto, sem enfeite
 
 ## Stack
 
-framework: HTML puro (Chrome Extension MV3, sem build)
-typescript: nao
+framework: Chrome Extension MV3, TypeScript com bundle por esbuild
+typescript: sim (modo estrito)
 component_library: nenhuma
 icons: SVG inline
 animations: CSS
@@ -56,5 +56,5 @@ density: compact
 
 - ProviderToggle: dois botoes segmentados (Deepgram / Google) com estado ativo em primary
 - JobProgress: barra de progresso + label de etapa (transcrevendo / traduzindo / sintetizando)
-- HudOverlay: painel flutuante dentro da pagina da Udemy, renderizado em Shadow DOM
+- HudOverlay: painel flutuante na aula, em Shadow DOM (OverlayView)
   para nao herdar o CSS da Udemy. Estados: idle / working / ready / error.
