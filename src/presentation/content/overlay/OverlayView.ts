@@ -85,7 +85,7 @@ const TEMPLATE = `
   <div class="panel" data-collapsed="false">
     <div class="head">
       <span class="dot" data-state="idle"></span>
-      <span class="title">Dub PT-BR</span>
+      <span class="title">dubdub</span>
       <span class="chev">&#9662;</span>
     </div>
     <div class="body">
