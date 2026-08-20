@@ -27,8 +27,11 @@ export class CanceledError extends DomainError {
 export class NoTranscriptSourceError extends DomainError {
   override readonly name = 'NoTranscriptSourceError';
 
-  constructor(readonly lectureId: string) {
+  readonly lectureId: string;
+
+  constructor(lectureId: string) {
     super(`sem legendas nem audio acessivel para a aula ${lectureId}`);
+    this.lectureId = lectureId;
   }
 }
 
@@ -36,13 +39,15 @@ export class NoTranscriptSourceError extends DomainError {
 export class ProviderError extends DomainError {
   override readonly name = 'ProviderError';
 
-  constructor(
-    readonly provider: string,
-    message: string,
-    readonly status?: number,
-    readonly body?: string
-  ) {
+  readonly provider: string;
+  readonly status: number | undefined;
+  readonly body: string | undefined;
+
+  constructor(provider: string, message: string, status?: number, body?: string) {
     super(message);
+    this.provider = provider;
+    this.status = status;
+    this.body = body;
   }
 
   /**
@@ -60,12 +65,17 @@ export class ProviderError extends DomainError {
 export class LocalServerUnavailableError extends DomainError {
   override readonly name = 'LocalServerUnavailableError';
 
-  constructor(
-    readonly engine: string,
-    readonly baseUrl: string,
-    readonly hint: string,
-    readonly detail?: string
-  ) {
+  readonly engine: string;
+  readonly baseUrl: string;
+  /** Como subir o servidor, para a mensagem da UI ser acionavel. */
+  readonly hint: string;
+  readonly detail: string | undefined;
+
+  constructor(engine: string, baseUrl: string, hint: string, detail?: string) {
     super(`${engine} nao respondeu em ${baseUrl}`);
+    this.engine = engine;
+    this.baseUrl = baseUrl;
+    this.hint = hint;
+    this.detail = detail;
   }
 }

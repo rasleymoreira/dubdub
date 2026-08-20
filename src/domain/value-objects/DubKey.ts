@@ -20,12 +20,22 @@ export interface DubKeyParts {
 }
 
 export class DubKey {
+  readonly lectureId: string;
+  readonly targetLang: LanguageTag;
+  readonly ttsEngine: TtsEngineId;
+  readonly voice: VoiceId;
+
   private constructor(
-    readonly lectureId: string,
-    readonly targetLang: LanguageTag,
-    readonly ttsEngine: TtsEngineId,
-    readonly voice: VoiceId
-  ) {}
+    lectureId: string,
+    targetLang: LanguageTag,
+    ttsEngine: TtsEngineId,
+    voice: VoiceId
+  ) {
+    this.lectureId = lectureId;
+    this.targetLang = targetLang;
+    this.ttsEngine = ttsEngine;
+    this.voice = voice;
+  }
 
   static from(parts: DubKeyParts): DubKey {
     // o Google TTS nao tem escolha de voz: normalizar evita duas chaves para a
@@ -51,11 +61,15 @@ export class DubKey {
 
 /** Chave da transcricao: independe do motor de voz, so da origem do texto. */
 export class TranscriptKey {
-  private constructor(
-    readonly lectureId: string,
-    readonly sttProvider: string,
-    readonly sourceLang: LanguageTag
-  ) {}
+  readonly lectureId: string;
+  readonly sttProvider: string;
+  readonly sourceLang: LanguageTag;
+
+  private constructor(lectureId: string, sttProvider: string, sourceLang: LanguageTag) {
+    this.lectureId = lectureId;
+    this.sttProvider = sttProvider;
+    this.sourceLang = sourceLang;
+  }
 
   static from(parts: {
     lectureId: string;
