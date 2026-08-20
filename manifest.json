@@ -1,0 +1,54 @@
+{
+  "manifest_version": 3,
+  "name": "Udemy Dub PT-BR",
+  "version": "0.1.0",
+  "description": "Dubla aulas da Udemy de ingles para portugues (Deepgram ou Google) e substitui o audio do video na reproducao.",
+  "minimum_chrome_version": "116",
+  "permissions": ["storage", "unlimitedStorage", "tabs", "nativeMessaging"],
+  "host_permissions": [
+    "https://*.udemy.com/*",
+    "https://*.udemycdn.com/*",
+    "https://*.cloudfront.net/*",
+    "https://api.deepgram.com/*",
+    "https://api.elevenlabs.io/*",
+    "https://api.inworld.ai/*",
+    "https://translate.googleapis.com/*",
+    "https://translate.google.com/*",
+    "http://localhost/*",
+    "http://127.0.0.1/*"
+  ],
+  "background": {
+    "service_worker": "src/background/service-worker.js",
+    "type": "module"
+  },
+  "action": {
+    "default_popup": "src/popup/popup.html",
+    "default_title": "Udemy Dub PT-BR",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://*.udemy.com/course/*"],
+      "js": [
+        "src/shared/constants.js",
+        "src/content/udemy.js",
+        "src/content/engine.js",
+        "src/content/overlay.js",
+        "src/content/content.js"
+      ],
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ]
+}

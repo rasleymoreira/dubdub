@@ -1,0 +1,15 @@
+{
+  "name": "udemy-dub-ptbr",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Extensao Chrome que dubla aulas da Udemy para pt-BR (Deepgram ou Google)",
+  "type": "module",
+  "scripts": {
+    "test": "node tests/run.js",
+    "test:offline": "node tests/run.js --offline",
+    "test:control": "node tests/local-tts-control.js",
+    "piper": "powershell -NoProfile -ExecutionPolicy Bypass -File tools/start-piper.ps1",
+    "kokoro": "powershell -NoProfile -ExecutionPolicy Bypass -File tools/start-kokoro.ps1",
+    "f5": "powershell -NoProfile -ExecutionPolicy Bypass -File tools/start-f5.ps1"
+  }
+}

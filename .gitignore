@@ -1,0 +1,21 @@
+# Ambientes Python dos servidores de TTS local
+.venv/
+.venv-kokoro/
+.venv-f5/
+__pycache__/
+*.pyc
+
+# Modelos baixados sob demanda (varios GB).
+# A voz de referencia do F5 e escolha sua, nao download: essa vale versionar.
+models/*
+!models/f5-ref/
+
+# Saida do build (esbuild) e artefatos gerados a partir do catalogo
+build/
+*.generated.json
+
+# Processos e logs dos servidores locais
+*.pid
+*.log
+
+node_modules/

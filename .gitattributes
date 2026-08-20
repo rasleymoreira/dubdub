@@ -1,0 +1,12 @@
+# Normaliza fim de linha: LF no repositorio, nativo no working copy.
+* text=auto
+
+# Scripts do Windows precisam de CRLF para o interpretador nao engasgar.
+*.ps1  text eol=crlf
+*.cmd  text eol=crlf
+*.bat  text eol=crlf
+
+# Binarios: nunca converter.
+*.png  binary
+*.wav  binary
+*.onnx binary
