@@ -1,15 +1,36 @@
 {
   "name": "udemy-dub-ptbr",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
-  "description": "Extensao Chrome que dubla aulas da Udemy para pt-BR (Deepgram ou Google)",
   "type": "module",
+  "description": "Extensao Chrome (MV3) que dubla aulas da Udemy para pt-BR com transcricao, traducao e sintese de voz",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
-    "test": "node tests/run.js",
-    "test:offline": "node tests/run.js --offline",
-    "test:control": "node tests/local-tts-control.js",
+    "build": "node scripts/build.mjs",
+    "watch": "node scripts/build.mjs --watch",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write \"**/*.{ts,js,mjs,json,md,css,html}\"",
+    "format:check": "prettier --check \"**/*.{ts,js,mjs,json,md,css,html}\"",
+    "test": "npm run test:unit",
+    "test:unit": "node --test tests/unit/",
+    "test:integration": "node --test tests/integration/",
+    "test:control": "node tests/integration/local-tts-control.js",
+    "verify": "npm run lint && npm run typecheck && npm run test:unit && npm run build",
     "piper": "powershell -NoProfile -ExecutionPolicy Bypass -File tools/start-piper.ps1",
     "kokoro": "powershell -NoProfile -ExecutionPolicy Bypass -File tools/start-kokoro.ps1",
     "f5": "powershell -NoProfile -ExecutionPolicy Bypass -File tools/start-f5.ps1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/chrome": "^0.0.287",
+    "esbuild": "^0.25.0",
+    "eslint": "^10.8.1",
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.21.0"
   }
 }
