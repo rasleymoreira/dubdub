@@ -17,7 +17,28 @@ function forbidLayers(layers, motivo) {
 }
 
 export default tseslint.config(
-  { ignores: ['build/**', 'node_modules/**', 'models/**', 'samples/**', 'tools/**'] },
+  {
+    ignores: [
+      'build/**',
+      'node_modules/**',
+      'models/**',
+      'samples/**',
+      'icons/**',
+      // ambientes Python dos servidores de TTS local
+      '.venv/**',
+      '.venv-kokoro/**',
+      '.venv-f5/**',
+      // tools/ e codigo standalone (host de native messaging, servidores Python)
+      // que roda fora do bundle e nao segue as regras de camada
+      'tools/**',
+      // codigo legado em JavaScript, removido ao fim da migracao
+      'src/background/**',
+      'src/content/**',
+      'src/popup/**',
+      'src/shared/constants.js',
+      'tests/*.js'
+    ]
+  },
 
   js.configs.recommended,
   ...tseslint.configs.recommended,
@@ -83,7 +104,16 @@ export default tseslint.config(
   },
 
   {
-    files: ['tests/**/*.ts', 'scripts/**/*.mjs'],
+    files: ['tests/**/*.ts', 'scripts/**/*.mjs', 'eslint.config.mjs'],
+    languageOptions: {
+      globals: {
+        process: 'readonly',
+        console: 'readonly',
+        Buffer: 'readonly',
+        URL: 'readonly',
+        __dirname: 'readonly'
+      }
+    },
     rules: {
       'no-console': 'off',
       'no-restricted-imports': 'off'

@@ -26,15 +26,6 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = path.join(ROOT, 'build');
 const WATCH = process.argv.includes('--watch');
 
-/** Resolve os aliases do tsconfig sem precisar de plugin externo. */
-const alias = {
-  '@domain': path.join(ROOT, 'src/domain'),
-  '@application': path.join(ROOT, 'src/application'),
-  '@infrastructure': path.join(ROOT, 'src/infrastructure'),
-  '@presentation': path.join(ROOT, 'src/presentation'),
-  '@shared': path.join(ROOT, 'src/shared')
-};
-
 const shared = {
   bundle: true,
   target: ['chrome116'],
@@ -42,8 +33,7 @@ const shared = {
   sourcemap: WATCH ? 'inline' : false,
   minify: !WATCH,
   legalComments: 'none',
-  logLevel: 'info',
-  alias
+  logLevel: 'info'
 };
 
 const BUNDLES = [
@@ -92,8 +82,7 @@ async function emitEngineCatalog() {
     bundle: true,
     format: 'esm',
     platform: 'neutral',
-    logLevel: 'silent',
-    alias
+    logLevel: 'silent'
   });
 
   const { LOCAL_SERVER_CATALOG } = await import(pathToFileURL(tmp).href + `?t=${Date.now()}`);
