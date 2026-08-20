@@ -101,7 +101,9 @@ async function run() {
   await emitEngineCatalog();
 
   if (!WATCH) {
-    await Promise.all(BUNDLES.map(({ name: _name, ...options }) => build({ ...shared, ...options })));
+    await Promise.all(
+      BUNDLES.map(({ name: _name, ...options }) => build({ ...shared, ...options }))
+    );
     console.log(`\nbuild pronto em ${path.relative(ROOT, OUT)}/`);
     console.log('Carregue essa pasta em chrome://extensions (Carregar sem compactacao).');
     return;

@@ -13,13 +13,7 @@
  */
 
 import type { Logger } from '../../application/ports/Logger.ts';
-import type {
-  Envelope,
-  MessageContracts,
-  RequestOf,
-  ResponseOf,
-  Result
-} from './contracts.ts';
+import type { Envelope, MessageContracts, RequestOf, ResponseOf, Result } from './contracts.ts';
 
 export type Handler<K extends keyof MessageContracts> = (
   request: RequestOf<K>,
@@ -91,9 +85,7 @@ export class MessageBus {
   ): Promise<Result<ResponseOf<K>> | null> {
     if (!tabId) return null;
     try {
-      return (await chrome.tabs.sendMessage(tabId, { type, ...request })) as Result<
-        ResponseOf<K>
-      >;
+      return (await chrome.tabs.sendMessage(tabId, { type, ...request })) as Result<ResponseOf<K>>;
     } catch {
       // aba fechada, navegou para fora, ou sem content script: normal
       return null;

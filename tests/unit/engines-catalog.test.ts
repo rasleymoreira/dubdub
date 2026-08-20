@@ -17,10 +17,7 @@ import {
   TTS_ENGINE_CATALOG,
   describeEngine
 } from '../../src/infrastructure/catalog/engines.catalog.ts';
-import {
-  LOCAL_TTS_ENGINE_IDS,
-  TTS_ENGINE_IDS
-} from '../../src/domain/value-objects/EngineId.ts';
+import { LOCAL_TTS_ENGINE_IDS, TTS_ENGINE_IDS } from '../../src/domain/value-objects/EngineId.ts';
 import { DEFAULT_SETTINGS } from '../../src/infrastructure/catalog/defaults.ts';
 
 describe('catalogo de motores', () => {

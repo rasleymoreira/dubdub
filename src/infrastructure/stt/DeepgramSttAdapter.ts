@@ -94,7 +94,10 @@ export class DeepgramSttAdapter implements TranscriptionPort {
 
   async validateKey(apiKey: string): Promise<{ projects: string[] }> {
     const response = await this.#http.expectOk(
-      await this.#http.send({ url: `${API}/projects`, headers: { Authorization: `Token ${apiKey}` } })
+      await this.#http.send({
+        url: `${API}/projects`,
+        headers: { Authorization: `Token ${apiKey}` }
+      })
     );
     const data = (await response.json()) as { projects?: { name?: string }[] };
     return {

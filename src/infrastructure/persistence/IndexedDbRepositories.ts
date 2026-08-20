@@ -47,9 +47,7 @@ export class IndexedDbDubRepository implements DubRepository {
   }
 
   async save(dub: Dub): Promise<void> {
-    await withTransaction(STORE.DUBS, 'readwrite', (store) =>
-      request(store.put(toDubRecord(dub)))
-    );
+    await withTransaction(STORE.DUBS, 'readwrite', (store) => request(store.put(toDubRecord(dub))));
   }
 
   /** Apaga a dublagem e o audio dela: orfaos de clipe encheriam o disco. */
@@ -127,9 +125,7 @@ export class IndexedDbClipRepository implements ClipRepository {
 
   async range(dubKey: string, from: number, to: number): Promise<StoredClip[]> {
     const records = await withTransaction(STORE.CLIPS, 'readonly', (store) =>
-      request<ClipRecord[]>(
-        store.getAll(clipRange(dubKey, from, to)) as IDBRequest<ClipRecord[]>
-      )
+      request<ClipRecord[]>(store.getAll(clipRange(dubKey, from, to)) as IDBRequest<ClipRecord[]>)
     );
 
     return records.map((record) => ({
@@ -198,7 +194,9 @@ export class IndexedDbTranslationRepository implements TranslationRepository {
     await withTransaction(STORE.TRANSLATIONS, 'readwrite', async (store) => {
       const now = Date.now();
       await Promise.all(
-        entries.map((entry) => request(store.put({ ...entry, createdAt: now } as TranslationRecord)))
+        entries.map((entry) =>
+          request(store.put({ ...entry, createdAt: now } as TranslationRecord))
+        )
       );
     });
   }

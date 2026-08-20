@@ -168,7 +168,10 @@ export class LocalHttpTtsAdapter implements SpeechSynthesisPort {
     protocolMemo.delete(base);
     throw (
       lastError ??
-      new ProviderError(this.#config.label, `${this.#config.label} nao respondeu em nenhum formato conhecido`)
+      new ProviderError(
+        this.#config.label,
+        `${this.#config.label} nao respondeu em nenhum formato conhecido`
+      )
     );
   }
 }

@@ -112,7 +112,8 @@ export class DubLecture {
       voice: selection.voice,
       targetLang: input.settings.targetLang,
       alreadyDone: opened.alreadyDone,
-      signal: input.signal
+      signal: input.signal,
+      reporter: input.reporter
     });
 
     if (result.failures > 0) {
@@ -143,7 +144,8 @@ export class DubLecture {
       lecture: input.lecture,
       sourceLang: input.settings.sourceLang,
       sttProvider: selection.sttProvider,
-      signal: input.signal
+      signal: input.signal,
+      reporter: input.reporter
     });
     notes.push(...transcript.notes);
     input.signal.throwIfCanceled();
@@ -152,7 +154,8 @@ export class DubLecture {
       segments: transcript.segments,
       from: input.settings.sourceLang,
       to: input.settings.targetLang,
-      signal: input.signal
+      signal: input.signal,
+      reporter: input.reporter
     });
 
     // o texto que vai ao sintetizador precisa ser frase corrida e pontuada

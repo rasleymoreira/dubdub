@@ -32,6 +32,7 @@ export interface SynthesizeSegmentsInput {
   /** Indices que ja tem audio, para o contador comecar certo. */
   readonly alreadyDone: ReadonlySet<number>;
   readonly signal: CancellationSignal;
+  readonly reporter: ProgressReporter;
 }
 
 export interface SynthesizeSegmentsOutput {
@@ -43,7 +44,6 @@ export interface SynthesizeSegmentsDeps {
   readonly registry: TtsRegistry;
   readonly clips: ClipRepository;
   readonly dubs: DubRepository;
-  readonly reporter: ProgressReporter;
   readonly logger: Logger;
   readonly clock: Clock;
 }
@@ -95,7 +95,7 @@ export class SynthesizeSegments {
           });
         }
 
-        this.deps.reporter.report({
+        input.reporter.report({
           status: JobStatus.SYNTHESIZING,
           done: done.size,
           total,

@@ -110,14 +110,19 @@ export default tseslint.config(
   },
 
   {
-    files: ['tests/**/*.ts', 'scripts/**/*.mjs', 'eslint.config.mjs'],
+    files: ['tests/**/*.ts', 'tests/**/*.mjs', 'scripts/**/*.mjs', 'eslint.config.mjs'],
     languageOptions: {
       globals: {
         process: 'readonly',
         console: 'readonly',
         Buffer: 'readonly',
         URL: 'readonly',
-        __dirname: 'readonly'
+        __dirname: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly',
+        setInterval: 'readonly',
+        clearInterval: 'readonly',
+        fetch: 'readonly'
       }
     },
     rules: {

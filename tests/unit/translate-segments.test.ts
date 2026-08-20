@@ -39,11 +39,17 @@ const segments = (...texts: string[]): SourceSegment[] =>
   texts.map((text, index) => ({ start: index, end: index + 1, text }));
 
 function build(translator: TranslationPort, cache: TranslationRepository) {
-  return new TranslateSegments({ translator, cache, reporter: SILENT_REPORTER });
+  return new TranslateSegments({ translator, cache });
 }
 
 const run = (useCase: TranslateSegments, input: SourceSegment[]) =>
-  useCase.execute({ segments: input, from: 'en', to: 'pt-BR', signal: NEVER_CANCELED });
+  useCase.execute({
+    segments: input,
+    from: 'en',
+    to: 'pt-BR',
+    signal: NEVER_CANCELED,
+    reporter: SILENT_REPORTER
+  });
 
 describe('TranslateSegments', () => {
   it('traduz tudo quando o cache esta vazio', async () => {
@@ -93,7 +99,11 @@ describe('TranslateSegments', () => {
   });
 
   it('traducao vazia cai para o texto original em vez de trecho mudo', async () => {
-    const port: TranslationPort = { async translate(request) { return request.texts.map(() => ''); } };
+    const port: TranslationPort = {
+      async translate(request) {
+        return request.texts.map(() => '');
+      }
+    };
     const { repository } = fakeCache();
 
     const result = await run(build(port, repository), segments('keep me'));
@@ -118,7 +128,8 @@ describe('TranslateSegments', () => {
       segments: segments('hello'),
       from: 'en',
       to: 'pt-BR',
-      signal: NEVER_CANCELED
+      signal: NEVER_CANCELED,
+      reporter: SILENT_REPORTER
     });
     calls.length = 0;
 
@@ -126,7 +137,8 @@ describe('TranslateSegments', () => {
       segments: segments('hello'),
       from: 'en',
       to: 'es',
-      signal: NEVER_CANCELED
+      signal: NEVER_CANCELED,
+      reporter: SILENT_REPORTER
     });
 
     assert.deepEqual(calls, [['hello']], 'destino diferente e traducao diferente');

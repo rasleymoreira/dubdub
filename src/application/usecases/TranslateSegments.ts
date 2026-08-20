@@ -19,12 +19,12 @@ export interface TranslateSegmentsInput {
   readonly from: LanguageTag;
   readonly to: LanguageTag;
   readonly signal: CancellationSignal;
+  readonly reporter: ProgressReporter;
 }
 
 export interface TranslateSegmentsDeps {
   readonly translator: TranslationPort;
   readonly cache: TranslationRepository;
-  readonly reporter: ProgressReporter;
 }
 
 const cacheKey = (targetLang: LanguageTag, text: string): string =>
@@ -50,7 +50,7 @@ export class TranslateSegments {
       return translations.map((text, index) => text ?? input.segments[index]!.text);
     }
 
-    this.deps.reporter.report({
+    input.reporter.report({
       status: JobStatus.TRANSLATING,
       done: 0,
       total: pending.length,
@@ -63,7 +63,7 @@ export class TranslateSegments {
       to: input.to,
       signal: input.signal,
       onProgress: (done, total) =>
-        this.deps.reporter.report({
+        input.reporter.report({
           status: JobStatus.TRANSLATING,
           done,
           total,

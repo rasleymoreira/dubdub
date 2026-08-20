@@ -55,7 +55,11 @@ function withNote(selection: EngineSelection, note: string): EngineSelection {
   return { ...selection, notes: [...selection.notes, note] };
 }
 
-function fallbackTo(selection: EngineSelection, engine: TtsEngineId, note: string): EngineSelection {
+function fallbackTo(
+  selection: EngineSelection,
+  engine: TtsEngineId,
+  note: string
+): EngineSelection {
   return { ...selection, ttsEngine: engine, voice: null, notes: [...selection.notes, note] };
 }
 

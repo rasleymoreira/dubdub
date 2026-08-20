@@ -27,6 +27,12 @@ export interface BuildTranscriptInput {
   readonly sourceLang: LanguageTag;
   readonly sttProvider: SttProviderId;
   readonly signal: CancellationSignal;
+  /**
+   * Vem por chamada e nao pelo construtor: o reporter e diferente para a aula
+   * atual e para cada aula da fila de adiantamento, que precisa carimbar o
+   * evento com o titulo e a posicao na fila.
+   */
+  readonly reporter: ProgressReporter;
 }
 
 export interface BuildTranscriptOutput {
@@ -39,7 +45,6 @@ export interface BuildTranscriptOutput {
 export interface BuildTranscriptDeps {
   readonly sources: readonly TranscriptionPort[];
   readonly transcripts: TranscriptRepository;
-  readonly reporter: ProgressReporter;
   readonly clock: Clock;
 }
 
@@ -78,7 +83,7 @@ export class BuildTranscript {
       };
     }
 
-    this.deps.reporter.report({
+    input.reporter.report({
       status: JobStatus.TRANSCRIBING,
       message: 'Obtendo o texto original'
     });
@@ -112,13 +117,17 @@ export class BuildTranscript {
 
   private async runChain(
     input: BuildTranscriptInput
-  ): Promise<{ segments: readonly SourceSegment[]; origin: TranscriptOrigin; notes: string[] } | null> {
+  ): Promise<{
+    segments: readonly SourceSegment[];
+    origin: TranscriptOrigin;
+    notes: string[];
+  } | null> {
     const notes: string[] = [];
 
     for (const source of this.chainFor(input.sttProvider)) {
       input.signal.throwIfCanceled();
 
-      this.deps.reporter.report({
+      input.reporter.report({
         status: JobStatus.TRANSCRIBING,
         message: source.label
       });

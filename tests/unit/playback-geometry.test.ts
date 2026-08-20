@@ -97,7 +97,10 @@ describe('findSegmentAt', () => {
   });
 
   it('devolve -1 antes da primeira fala', () => {
-    assert.equal(findSegmentAt([{ start: 10, end: 12 }], 2, () => 3.5), -1);
+    assert.equal(
+      findSegmentAt([{ start: 10, end: 12 }], 2, () => 3.5),
+      -1
+    );
   });
 
   it('um trecho comprimido ocupa menos tempo, entao a janela encurta', () => {

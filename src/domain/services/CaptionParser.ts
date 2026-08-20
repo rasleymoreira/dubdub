@@ -46,7 +46,11 @@ export function parseCaptions(content: string): CaptionCue[] {
     }
 
     const start = parseTimestamp(line.slice(0, arrow));
-    const endRaw = line.slice(arrow + 3).trim().split(/\s+/)[0] ?? '';
+    const endRaw =
+      line
+        .slice(arrow + 3)
+        .trim()
+        .split(/\s+/)[0] ?? '';
     const end = parseTimestamp(endRaw);
     index++;
 

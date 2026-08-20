@@ -19,7 +19,10 @@
  * Adicionar um motor novo passa a ser: um adapter e uma entrada aqui.
  */
 
-import type { EngineCapability, EngineCapabilityMap } from '../../domain/services/EngineCapabilities.ts';
+import type {
+  EngineCapability,
+  EngineCapabilityMap
+} from '../../domain/services/EngineCapabilities.ts';
 import type { LocalTtsEngineId, TtsEngineId } from '../../domain/value-objects/EngineId.ts';
 import { DEEPGRAM_VOICES, kokoroVoiceLanguage, piperVoiceLanguage } from './voices.catalog.ts';
 

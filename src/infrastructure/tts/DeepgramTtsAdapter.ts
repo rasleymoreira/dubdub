@@ -57,9 +57,18 @@ export class DeepgramTtsAdapter implements SpeechSynthesisPort {
         if (!response.ok) {
           const error = await this.#http.readError(response);
           // alguns modelos rejeitam mp3: desliga e repete em wav
-          if (this.#mp3Supported && response.status === 400 && /encoding|bit_rate/i.test(error.body ?? '')) {
+          if (
+            this.#mp3Supported &&
+            response.status === 400 &&
+            /encoding|bit_rate/i.test(error.body ?? '')
+          ) {
             this.#mp3Supported = false;
-            throw new ProviderError('Deepgram', 'mp3 indisponivel, repetindo em wav', 429, error.body);
+            throw new ProviderError(
+              'Deepgram',
+              'mp3 indisponivel, repetindo em wav',
+              429,
+              error.body
+            );
           }
           throw error;
         }

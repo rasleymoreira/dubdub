@@ -114,10 +114,7 @@ export interface PartLocation {
 }
 
 /** Em qual parte do clipe (e em que ponto dela) cai um instante do trecho. */
-export function locatePart(
-  partDurations: readonly number[],
-  clipTime: number
-): PartLocation {
+export function locatePart(partDurations: readonly number[], clipTime: number): PartLocation {
   let accumulated = 0;
   for (let part = 0; part < partDurations.length; part++) {
     const partDuration = partDurations[part]!;

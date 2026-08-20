@@ -96,7 +96,11 @@ export class GoogleTranslateAdapter implements TranslationPort {
           );
         }
         if (looksLikeBlockPage(text)) {
-          throw new ProviderError('Google Translate', 'Google Translate bloqueou a requisicao', 429);
+          throw new ProviderError(
+            'Google Translate',
+            'Google Translate bloqueou a requisicao',
+            429
+          );
         }
 
         try {

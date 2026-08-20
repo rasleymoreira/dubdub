@@ -1,14 +1,20 @@
 /*
- * Native messaging host: liga e desliga os servidores de TTS local (Piper e
- * Kokoro) a pedido da extensao.
+ * Native messaging host: liga e desliga os servidores de TTS local.
  *
  * O Chrome executa este processo, envia UMA mensagem (4 bytes de tamanho em
- * little-endian + JSON em UTF-8), le a resposta no mesmo formato e encerra.
+ * little-endian mais JSON em UTF-8), le a resposta no mesmo formato e encerra.
  *
  * Acoes aceitas:
- *   { action: 'status', engine: 'piper'|'kokoro', port }
+ *   { action: 'status', engine: 'piper'|'kokoro'|'f5', port }
  *   { action: 'start',  engine, voice, port, cuda }
  *   { action: 'stop',   engine, port }
+ *
+ * A tabela de motores NAO mora aqui. Ela e gerada pelo build a partir de
+ * src/infrastructure/catalog/engines.catalog.ts, que e a fonte unica do
+ * projeto. Este processo roda fora do bundle (o Chrome o lanca direto com o
+ * Node do sistema), entao nao pode importar TypeScript: le o JSON.
+ *
+ * Rode `npm run build` antes de usar, ou o arquivo nao existe.
  */
 
 const fs = require('fs');
@@ -17,69 +23,20 @@ const { spawn, execFileSync } = require('child_process');
 
 const ROOT = path.resolve(__dirname, '..', '..');
 const MODELS = path.join(ROOT, 'models');
-const VOICE_RE = /^[\p{L}\p{N}_-]+$/u;
+const CATALOG_FILE = path.join(__dirname, 'engines.generated.json');
 
-const ENGINES = {
-  f5: {
-    label: 'F5-TTS',
-    python: path.join(ROOT, '.venv-f5', 'Scripts', 'python.exe'),
-    pidFile: path.join(ROOT, '.f5.pid'),
-    log: path.join(ROOT, 'f5-server.log'),
-    defaultPort: 5002,
-    defaultVoice: '',
-    // sem voz definida o servidor usa a primeira referencia de models/f5-ref
-    allowEmptyVoice: true,
-    // carrega ~1,3 GB de checkpoint
-    startTimeoutMs: 240000,
-    setupHint: 'Rode tools\\install-f5.ps1 uma vez.',
-    voiceProblem: () => null,
-    args: ({ voice, port, cuda }) => {
-      const list = [path.join(ROOT, 'tools', 'f5_server.py'), '--port', String(port)];
-      if (voice) list.push('--voice', voice);
-      list.push('--device', cuda ? 'cuda' : 'cpu');
-      return list;
-    }
-  },
-  piper: {
-    label: 'Piper',
-    python: path.join(ROOT, '.venv', 'Scripts', 'python.exe'),
-    pidFile: path.join(ROOT, '.piper.pid'),
-    log: path.join(ROOT, 'piper-server.log'),
-    defaultPort: 5000,
-    defaultVoice: 'pt_BR-faber-medium',
-    startTimeoutMs: 25000,
-    setupHint: 'Rode tools\\start-piper.ps1 uma vez para criar o .venv.',
-    voiceProblem: (voice) =>
-      fs.existsSync(path.join(MODELS, voice + '.onnx'))
-        ? null
-        : 'Voz ' + voice + ' nao baixada. Rode: .venv\\Scripts\\python.exe -m piper.download_voices ' +
-          voice + ' --download-dir models',
-    args: ({ voice, port, cuda }) => {
-      const list = ['-m', 'piper.http_server', '-m', voice, '--data-dir', MODELS, '--port', String(port)];
-      if (cuda) list.push('--cuda');
-      return list;
-    }
-  },
-  kokoro: {
-    label: 'Kokoro',
-    python: path.join(ROOT, '.venv-kokoro', 'Scripts', 'python.exe'),
-    pidFile: path.join(ROOT, '.kokoro.pid'),
-    log: path.join(ROOT, 'kokoro-server.log'),
-    defaultPort: 5001,
-    defaultVoice: 'pm_alex',
-    // primeira execucao baixa o modelo (~330 MB)
-    startTimeoutMs: 180000,
-    setupHint:
-      'Crie o ambiente: py -3.12 -m venv .venv-kokoro e ' +
-      '.venv-kokoro\\Scripts\\python.exe -m pip install kokoro soundfile',
-    voiceProblem: () => null,
-    args: ({ voice, port, cuda }) => {
-      const list = [path.join(ROOT, 'tools', 'kokoro_server.py'), '--port', String(port), '--voice', voice];
-      if (cuda) list.push('--device', 'cuda');
-      return list;
-    }
+/** Nome de voz e interpolado em linha de comando: so caracteres inofensivos. */
+const VOICE_PATTERN = /^[\p{L}\p{N}_-]+$/u;
+
+function loadCatalog() {
+  try {
+    return JSON.parse(fs.readFileSync(CATALOG_FILE, 'utf8'));
+  } catch (error) {
+    return { __error: 'catalogo de motores ausente. Rode npm run build. ' + error.message };
   }
-};
+}
+
+const CATALOG = loadCatalog();
 
 function send(payload) {
   const body = Buffer.from(JSON.stringify(payload), 'utf8');
@@ -91,6 +48,31 @@ function send(payload) {
 function validPort(value, fallback) {
   const port = Number(value) || fallback;
   return port >= 1024 && port <= 65535 ? port : fallback;
+}
+
+function interpolate(args, values) {
+  return args.map((arg) =>
+    arg.replace(/\{(voice|port|models)\}/g, (_, name) => String(values[name]))
+  );
+}
+
+/** Monta a linha de comando a partir do descritor gerado. */
+function buildArgs(descriptor, { voice, port, cuda }) {
+  const values = { voice, port, models: MODELS };
+  const args = [];
+
+  if (descriptor.launch.kind === 'module') args.push('-m', descriptor.launch.target);
+  else args.push(path.join(ROOT, descriptor.launch.target));
+
+  if (voice) args.push(...interpolate(descriptor.voiceArgs, values));
+  args.push(...interpolate(descriptor.args, values));
+  args.push(...interpolate(cuda ? descriptor.cudaArgs : descriptor.cpuArgs, values));
+
+  return args;
+}
+
+function pythonFor(descriptor) {
+  return path.join(ROOT, descriptor.venv, 'Scripts', 'python.exe');
 }
 
 /** O servidor esta no ar? Perguntamos a ele, nao ao PID. */
@@ -105,7 +87,7 @@ async function isUp(port) {
   }
 }
 
-/** Quem esta escutando a porta (cobre servidores iniciados fora da extensao). */
+/** Quem escuta a porta: cobre servidores iniciados fora da extensao. */
 function pidOnPort(port) {
   try {
     const out = execFileSync('netstat', ['-ano', '-p', 'TCP'], { encoding: 'utf8' });
@@ -120,25 +102,27 @@ function pidOnPort(port) {
 }
 
 /**
- * O arquivo guarda "pid porta": sem a porta nao da para saber se o processo
+ * O arquivo guarda "pid porta". Sem a porta nao daria para saber se o processo
  * anotado e o que atende a porta pedida, e um stop poderia matar outra
  * instancia do mesmo motor rodando em porta diferente.
  */
-function readPid(engine, port) {
+function readPid(descriptor, port) {
   try {
-    const [rawPid, rawPort] = fs.readFileSync(engine.pidFile, 'utf8').trim().split(/\s+/);
+    const file = path.join(ROOT, descriptor.pidFile);
+    const [rawPid, rawPort] = fs.readFileSync(file, 'utf8').trim().split(/\s+/);
     const pid = Number(rawPid);
     if (!Number.isInteger(pid) || pid <= 0) return null;
+
     // formato antigo (so o pid) continua valendo para a porta padrao
-    const anotada = rawPort === undefined ? engine.defaultPort : Number(rawPort);
+    const anotada = rawPort === undefined ? descriptor.defaultPort : Number(rawPort);
     return anotada === port ? pid : null;
   } catch {
     return null;
   }
 }
 
-function writePid(engine, pid, port) {
-  fs.writeFileSync(engine.pidFile, pid + ' ' + port);
+function writePid(descriptor, pid, port) {
+  fs.writeFileSync(path.join(ROOT, descriptor.pidFile), pid + ' ' + port);
 }
 
 function kill(pid) {
@@ -155,22 +139,35 @@ function kill(pid) {
   }
 }
 
-async function start(engine, { voice, port, cuda }) {
+/** O modelo da voz existe em disco? So o Piper declara isso. */
+function voiceProblem(descriptor, voice) {
+  if (!descriptor.voiceModelPath || !voice) return null;
+  const relative = descriptor.voiceModelPath.replace('{voice}', voice);
+  if (fs.existsSync(path.join(ROOT, relative))) return null;
+  return (descriptor.voiceMissingHint || 'Voz {voice} nao encontrada.').replace(
+    /\{voice\}/g,
+    voice
+  );
+}
+
+async function start(descriptor, { voice, port, cuda }) {
   if (await isUp(port)) return { ok: true, running: true, already: true, port };
 
-  if (!fs.existsSync(engine.python)) {
-    return { ok: false, error: 'Ambiente do ' + engine.label + ' nao encontrado. ' + engine.setupHint };
+  const python = pythonFor(descriptor);
+  if (!fs.existsSync(python)) {
+    return { ok: false, error: 'Ambiente do ' + descriptor.label + ' nao encontrado. ' + descriptor.setupHint };
   }
-  const emptyOk = engine.allowEmptyVoice && !voice;
-  if (!emptyOk && !VOICE_RE.test(voice || '')) {
+
+  const emptyOk = descriptor.allowEmptyVoice && !voice;
+  if (!emptyOk && !VOICE_PATTERN.test(voice || '')) {
     return { ok: false, error: 'Nome de voz invalido: ' + voice };
   }
 
-  const problem = engine.voiceProblem(voice);
+  const problem = voiceProblem(descriptor, voice);
   if (problem) return { ok: false, error: problem };
 
-  const log = fs.openSync(engine.log, 'a');
-  const child = spawn(engine.python, engine.args({ voice, port, cuda }), {
+  const log = fs.openSync(path.join(ROOT, descriptor.logFile), 'a');
+  const child = spawn(python, buildArgs(descriptor, { voice, port, cuda }), {
     cwd: ROOT,
     detached: true,
     stdio: ['ignore', log, log],
@@ -178,23 +175,24 @@ async function start(engine, { voice, port, cuda }) {
     env: Object.assign({}, process.env, { PYTHONUTF8: '1' })
   });
   child.unref();
-  writePid(engine, child.pid, port);
+  writePid(descriptor, child.pid, port);
 
-  const deadline = Date.now() + engine.startTimeoutMs;
+  const deadline = Date.now() + descriptor.startTimeoutMs;
   while (Date.now() < deadline) {
     await new Promise((resolve) => setTimeout(resolve, 500));
     if (await isUp(port)) return { ok: true, running: true, pid: child.pid, voice, port };
   }
+
   return {
     ok: false,
     error:
-      'O ' + engine.label + ' subiu mas nao respondeu em ' +
-      Math.round(engine.startTimeoutMs / 1000) + 's. Veja ' + path.basename(engine.log) + '.'
+      'O ' + descriptor.label + ' subiu mas nao respondeu em ' +
+      Math.round(descriptor.startTimeoutMs / 1000) + 's. Veja ' + descriptor.logFile + '.'
   };
 }
 
-async function stop(engine, { port }) {
-  const pid = readPid(engine, port) || pidOnPort(port);
+async function stop(descriptor, { port }) {
+  const pid = readPid(descriptor, port) || pidOnPort(port);
   if (!pid) {
     const running = await isUp(port);
     return running
@@ -204,7 +202,7 @@ async function stop(engine, { port }) {
 
   kill(pid);
   try {
-    fs.unlinkSync(engine.pidFile);
+    fs.unlinkSync(path.join(ROOT, descriptor.pidFile));
   } catch {
     /* ja nao existia */
   }
@@ -217,33 +215,39 @@ async function stop(engine, { port }) {
 }
 
 async function handle(message) {
-  const engine = ENGINES[message.engine] || ENGINES.piper;
-  const port = validPort(message.port, engine.defaultPort);
-  const voice = message.voice || engine.defaultVoice;
+  if (CATALOG.__error) return { ok: false, error: CATALOG.__error };
+
+  const descriptor = CATALOG[message.engine] || CATALOG.piper;
+  if (!descriptor) return { ok: false, error: 'motor desconhecido: ' + message.engine };
+
+  const port = validPort(message.port, descriptor.defaultPort);
+  const voice = message.voice || descriptor.defaultVoice;
 
   switch (message.action) {
     case 'start':
-      return start(engine, { voice, port, cuda: Boolean(message.cuda) });
+      return start(descriptor, { voice, port, cuda: Boolean(message.cuda) });
     case 'stop':
-      return stop(engine, { port });
+      return stop(descriptor, { port });
     case 'status':
     default: {
       const running = await isUp(port);
       return {
         ok: true,
-        engine: engine.label,
+        engine: descriptor.label,
         running,
         port,
-        pid: running ? readPid(engine, port) || pidOnPort(port) : null
+        pid: running ? readPid(descriptor, port) || pidOnPort(port) : null
       };
     }
   }
 }
 
 let buffer = Buffer.alloc(0);
+
 process.stdin.on('data', (chunk) => {
   buffer = Buffer.concat([buffer, chunk]);
   if (buffer.length < 4) return;
+
   const length = buffer.readUInt32LE(0);
   if (buffer.length < 4 + length) return;
 
@@ -253,6 +257,7 @@ process.stdin.on('data', (chunk) => {
   } catch (error) {
     return send({ ok: false, error: 'mensagem invalida: ' + error.message });
   }
+
   buffer = Buffer.alloc(0);
   handle(message).then(send, (error) => send({ ok: false, error: String(error.message || error) }));
 });

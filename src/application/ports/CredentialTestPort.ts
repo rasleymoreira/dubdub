@@ -30,5 +30,10 @@ export interface CredentialTestResult {
 }
 
 export interface CredentialTestPort {
-  test(input: { apiKey?: string; url?: string; voice?: string; language?: string }): Promise<CredentialTestResult>;
+  test(input: {
+    apiKey?: string;
+    url?: string;
+    voice?: string;
+    language?: string;
+  }): Promise<CredentialTestResult>;
 }

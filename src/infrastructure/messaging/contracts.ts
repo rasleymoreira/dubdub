@@ -98,7 +98,7 @@ export interface TabState {
 export interface MessageContracts {
   [MSG.GET_STATE]: { request: { tabId: number | null }; response: PopupState };
   [MSG.START_JOB]: {
-    request: { tabId: number | null; startAt?: number; force?: boolean };
+    request: { tabId: number | null; startAt?: number | undefined; force?: boolean | undefined };
     response: Record<string, never>;
   };
   [MSG.CANCEL_JOB]: { request: { tabId: number | null }; response: { canceled: boolean } };
@@ -106,7 +106,10 @@ export interface MessageContracts {
     request: { patch: SettingsPatch };
     response: { settings: Settings; engines: EngineSelection };
   };
-  [MSG.SET_ENABLED]: { request: { tabId: number | null; enabled: boolean }; response: Record<string, never> };
+  [MSG.SET_ENABLED]: {
+    request: { tabId: number | null; enabled: boolean };
+    response: Record<string, never>;
+  };
   [MSG.LIST_DUBS]: {
     request: Record<string, never>;
     response: { dubs: readonly DubSummary[]; usage: StorageEstimate | null };
@@ -114,19 +117,33 @@ export interface MessageContracts {
   [MSG.DELETE_DUB]: { request: { key: string }; response: Record<string, never> };
   [MSG.CLEAR_CACHE]: { request: Record<string, never>; response: Record<string, never> };
   [MSG.TEST_CREDENTIAL]: {
-    request: { engine: TtsEngineId | 'deepgram-stt'; apiKey?: string; url?: string; voice?: string };
+    request: {
+      engine: TtsEngineId | 'deepgram-stt';
+      apiKey?: string | undefined;
+      url?: string | undefined;
+      voice?: string | undefined;
+    };
     response: { result: CredentialTestResult };
   };
-  [MSG.LOCAL_STATUS]: { request: { engine: LocalServerCommand['engine'] }; response: { status: LocalServerStatus } };
-  [MSG.LOCAL_START]: { request: { engine: LocalServerCommand['engine'] }; response: { status: LocalServerStatus } };
-  [MSG.LOCAL_STOP]: { request: { engine: LocalServerCommand['engine'] }; response: { status: LocalServerStatus } };
+  [MSG.LOCAL_STATUS]: {
+    request: { engine: LocalServerCommand['engine'] };
+    response: { status: LocalServerStatus };
+  };
+  [MSG.LOCAL_START]: {
+    request: { engine: LocalServerCommand['engine'] };
+    response: { status: LocalServerStatus };
+  };
+  [MSG.LOCAL_STOP]: {
+    request: { engine: LocalServerCommand['engine'] };
+    response: { status: LocalServerStatus };
+  };
 
   [MSG.CONTENT_READY]: {
     request: { lecture: Lecture };
     response: { settings: Settings; manifest: DubManifest | null; progress: JobProgress | null };
   };
   [MSG.GET_MANIFEST]: {
-    request: { key?: string; lectureId?: string };
+    request: { key?: string | undefined; lectureId?: string | undefined };
     response: { manifest: DubManifest | null; settings: Settings };
   };
   [MSG.GET_CLIPS]: {
@@ -136,13 +153,19 @@ export interface MessageContracts {
   [MSG.PING]: { request: { tabId: number | null }; response: { running: boolean } };
 
   [MSG.GET_LECTURE_CONTEXT]: {
-    request: { lectureId?: string };
+    request: { lectureId?: string | undefined };
     response: { lecture: Lecture | null };
   };
-  [MSG.GET_CURRICULUM]: { request: Record<string, never>; response: { items: readonly CurriculumItem[] } };
+  [MSG.GET_CURRICULUM]: {
+    request: Record<string, never>;
+    response: { items: readonly CurriculumItem[] };
+  };
   [MSG.GET_TAB_STATE]: { request: Record<string, never>; response: TabState };
   [MSG.FETCH_TEXT]: { request: { url: string }; response: { text: string } };
-  [MSG.JOB_PROGRESS]: { request: { tabId: number; progress: JobProgress }; response: Record<string, never> };
+  [MSG.JOB_PROGRESS]: {
+    request: { tabId: number; progress: JobProgress };
+    response: Record<string, never>;
+  };
   [MSG.DUB_READY]: {
     request: { manifest: DubManifest; lectureId: string; autoEnable: boolean };
     response: Record<string, never>;

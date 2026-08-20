@@ -137,7 +137,10 @@ export function capitalizeSentenceStarts(texts: readonly string[]): string[] {
  * continuidade estava escrita, comentada e testada, mas nunca acontecia no
  * pipeline real.
  */
-export function polishForSpeech(texts: readonly string[], options: NormalizeOptions = {}): string[] {
+export function polishForSpeech(
+  texts: readonly string[],
+  options: NormalizeOptions = {}
+): string[] {
   const normalized = texts.map((text) =>
     normalizeForSpeech(text, { ...options, capitalize: false })
   );
