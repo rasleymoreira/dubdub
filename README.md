@@ -40,7 +40,6 @@ pelo popup, está em **[docs/INSTALACAO.md](docs/INSTALACAO.md)**.
 | [docs/ARQUITETURA.md](docs/ARQUITETURA.md)       | como o código é organizado e por quê                          |
 | [docs/PADROES.md](docs/PADROES.md)               | padrões de projeto aplicados e o problema que cada um resolve |
 | [docs/CONTRIBUINDO.md](docs/CONTRIBUINDO.md)     | build, testes, lint, commits e como adicionar um motor novo   |
-| [docs/ADR/](docs/ADR/)                           | decisões arquiteturais registradas                            |
 
 ## Como funciona
 
