@@ -6,7 +6,7 @@
 
 ## Projeto
 
-name: dubdub
+name: DubDub
 description: Extensao Chrome que dubla aulas da Udemy de ingles para portugues e troca o audio do player na reproducao.
 tone: tecnico, direto, sem enfeite
 
