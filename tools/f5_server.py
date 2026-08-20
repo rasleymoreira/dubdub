@@ -1,48 +1,41 @@
 """
-Servidor HTTP do F5-TTS no mesmo contrato do piper.http_server e do
-kokoro_server, para a extensao falar com todos sem cliente separado.
+Servidor HTTP do F5-TTS.
 
-    POST /synthesize   {"text": "...", "voice": "nome", "speed": 1.0}  -> WAV
-    POST /             corpo em text/plain                             -> WAV
-    GET  /?text=...                                                    -> WAV
-    GET  /voices       referencias disponiveis                         -> JSON
-    GET  /info         modelo, dispositivo e referencia em uso         -> JSON
+As rotas e o formato de resposta vem de tts_http_contract; aqui fica so o que e
+proprio do F5. O contrato compartilhado e o mesmo do piper.http_server, o que
+permite a extensao falar com os tres motores locais usando um cliente so.
 
-O F5-TTS clona a voz de um audio de referencia, entao aqui "voz" = um par de
+O F5 clona a voz de um audio de referencia, entao aqui "voz" e um par de
 arquivos em models/f5-ref/:
 
     models/f5-ref/heitor.wav   5 a 15 segundos de fala limpa
     models/f5-ref/heitor.txt   a transcricao exata desse audio
+
+A qualidade da dublagem depende diretamente da referencia: audio limpo, uma so
+pessoa falando, sem eco, e o .txt batendo palavra por palavra com o audio.
 
 Uso:
     .venv-f5\\Scripts\\python.exe tools\\f5_server.py --port 5002 --device cuda
 """
 
 import argparse
-import io
-import json
 import logging
-import threading
-import wave
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import parse_qs, urlparse
 
 import numpy as np
+import threading
+
+from tts_http_contract import TtsEngine, pcm_to_wav, serve
 
 ROOT = Path(__file__).resolve().parent.parent
 REF_DIR = ROOT / "models" / "f5-ref"
 
 log = logging.getLogger("f5-server")
 
-lock = threading.Lock()  # a inferencia nao e thread-safe
-model = None
-config = {}
 
-
-def patch_torchaudio_if_needed(probe: Path):
+def patch_torchaudio_if_needed(probe: Path | None):
     """
-    O torchaudio 2.9+ delega leitura de audio ao torchcodec, que no Windows
+    O torchaudio 2.9+ delega a leitura de audio ao torchcodec, que no Windows
     exige as DLLs do FFmpeg. Quando isso falha, trocamos por soundfile, que ja
     vem instalado e cobre o unico uso do F5 aqui: ler o audio de referencia.
     """
@@ -54,8 +47,10 @@ def patch_torchaudio_if_needed(probe: Path):
             torchaudio.load(str(probe))
             log.info("leitura de audio: torchaudio nativo")
             return
-        except Exception as error:
-            log.warning("torchaudio nao consegue ler audio (%s); usando soundfile", type(error).__name__)
+        except Exception as error:  # noqa: BLE001 - qualquer falha cai para soundfile
+            log.warning(
+                "torchaudio nao consegue ler audio (%s); usando soundfile", type(error).__name__
+            )
 
     import soundfile as sf
 
@@ -78,10 +73,11 @@ def patch_torchaudio_if_needed(probe: Path):
     log.info("leitura de audio: soundfile")
 
 
-def list_refs():
-    """Referencias validas: .wav com .txt do mesmo nome ao lado."""
+def list_refs() -> dict:
+    """Referencias validas: .wav com um .txt de mesmo nome ao lado."""
     if not REF_DIR.is_dir():
         return {}
+
     refs = {}
     for wav in sorted(REF_DIR.glob("*.wav")):
         txt = wav.with_suffix(".txt")
@@ -90,122 +86,63 @@ def list_refs():
     return refs
 
 
-def synthesize(text: str, voice: str, speed: float) -> bytes:
-    refs = list_refs()
-    if not refs:
-        raise FileNotFoundError(
-            f"nenhuma referencia em {REF_DIR}. Coloque um par nome.wav + nome.txt "
-            "(5 a 15s de fala limpa e a transcricao exata)."
-        )
-    if voice not in refs:
-        raise KeyError(f"referencia '{voice}' nao existe. Disponiveis: {', '.join(refs)}")
+class F5Engine(TtsEngine):
+    name = "f5-tts"
 
-    ref_wav, ref_text = refs[voice]
+    def __init__(self, model, voice: str, speed: float, nfe: int, device: str, lower: bool, ckpt: str):
+        self._model = model
+        self.default_voice = voice
+        self.default_speed = speed
+        self.nfe = nfe
+        self.device = device
+        self.lower = lower
+        self.ckpt = ckpt
+        # a inferencia nao e thread-safe: serializamos as requisicoes
+        self._lock = threading.Lock()
 
-    # o checkpoint pt-br foi treinado em minusculas
-    gen_text = text.lower() if config["lower"] else text
-
-    with lock:
-        wav, sample_rate, _ = model.infer(
-            ref_file=str(ref_wav),
-            # o alinhamento da referencia segue a mesma caixa do texto gerado
-            ref_text=ref_text.lower() if config["lower"] else ref_text,
-            gen_text=gen_text,
-            speed=speed,
-            nfe_step=config["nfe"],
-            remove_silence=False,
-        )
-
-    audio = np.asarray(wav, dtype=np.float32)
-    pcm = (np.clip(audio, -1.0, 1.0) * 32767.0).astype("<i2")
-
-    buffer = io.BytesIO()
-    with wave.open(buffer, "wb") as out:
-        out.setnchannels(1)
-        out.setsampwidth(2)
-        out.setframerate(int(sample_rate))
-        out.writeframes(pcm.tobytes())
-    return buffer.getvalue()
-
-
-class Handler(BaseHTTPRequestHandler):
-    protocol_version = "HTTP/1.1"
-
-    def log_message(self, fmt, *args):
-        pass
-
-    def _send(self, status: int, body: bytes, content_type: str):
-        self.send_response(status)
-        self.send_header("Content-Type", content_type)
-        self.send_header("Content-Length", str(len(body)))
-        self.send_header("Access-Control-Allow-Origin", "*")
-        self.end_headers()
-        self.wfile.write(body)
-
-    def _json(self, status: int, payload):
-        self._send(status, json.dumps(payload).encode("utf-8"), "application/json")
-
-    def _audio(self, text: str, voice: str, speed: float):
-        text = (text or "").strip()
-        if not text:
-            return self._json(400, {"error": "texto vazio"})
-        try:
-            wav = synthesize(text, voice or config["voice"], speed)
-        except (FileNotFoundError, KeyError) as error:
-            return self._json(400, {"error": str(error)})
-        except Exception as error:
-            log.exception("falha ao sintetizar")
-            return self._json(500, {"error": str(error)})
-        self._send(200, wav, "audio/wav")
-
-    def do_GET(self):
-        route = urlparse(self.path)
-        path = route.path.rstrip("/")
-
-        if path == "/voices":
-            return self._json(200, {"voices": list(list_refs())})
-        if path == "/info":
-            return self._json(
-                200,
-                {
-                    "engine": "f5-tts",
-                    "device": config["device"],
-                    "voice": config["voice"],
-                    "nfe_step": config["nfe"],
-                    "refs": list(list_refs()),
-                    "ckpt": config["ckpt"],
-                },
+    def synthesize(self, text: str, voice: str, speed: float) -> bytes:
+        refs = list_refs()
+        if not refs:
+            raise ValueError(
+                f"nenhuma referencia em {REF_DIR}. Coloque um par nome.wav + nome.txt "
+                "(5 a 15s de fala limpa e a transcricao exata)."
+            )
+        if voice not in refs:
+            raise ValueError(
+                f"referencia '{voice}' nao existe. Disponiveis: {', '.join(refs)}"
             )
 
-        query = parse_qs(route.query)
-        if "text" in query:
-            return self._audio(
-                query["text"][0],
-                (query.get("voice") or [config["voice"]])[0],
-                float((query.get("speed") or [config["speed"]])[0]),
-            )
-        return self._json(404, {"error": "use GET /?text=... ou POST /synthesize"})
+        ref_wav, ref_text = refs[voice]
 
-    def do_POST(self):
-        length = int(self.headers.get("Content-Length") or 0)
-        raw = self.rfile.read(length) if length else b""
-        path = urlparse(self.path).path.rstrip("/")
+        # o checkpoint pt-br foi treinado em minusculas; o alinhamento da
+        # referencia precisa seguir a mesma caixa do texto gerado
+        gen_text = text.lower() if self.lower else text
+        ref_aligned = ref_text.lower() if self.lower else ref_text
 
-        if path in ("/synthesize", "/tts", "/api/tts"):
-            try:
-                payload = json.loads(raw.decode("utf-8") or "{}")
-            except json.JSONDecodeError:
-                return self._json(400, {"error": "JSON invalido"})
-            return self._audio(
-                payload.get("text") or payload.get("input") or "",
-                payload.get("voice") or config["voice"],
-                float(payload.get("speed") or config["speed"]),
+        with self._lock:
+            wav, sample_rate, _ = self._model.infer(
+                ref_file=str(ref_wav),
+                ref_text=ref_aligned,
+                gen_text=gen_text,
+                speed=speed,
+                nfe_step=self.nfe,
+                remove_silence=False,
             )
 
-        if path in ("", "/"):
-            return self._audio(raw.decode("utf-8", "replace"), config["voice"], config["speed"])
+        return pcm_to_wav(np.asarray(wav, dtype=np.float32), int(sample_rate))
 
-        return self._json(404, {"error": "rota desconhecida"})
+    def list_voices(self) -> list:
+        return list(list_refs())
+
+    def describe(self) -> dict:
+        return {
+            "engine": self.name,
+            "device": self.device,
+            "voice": self.default_voice,
+            "nfe_step": self.nfe,
+            "refs": list(list_refs()),
+            "ckpt": self.ckpt,
+        }
 
 
 def main():
@@ -226,7 +163,7 @@ def main():
 
     refs = list_refs()
     if not refs:
-        log.error("nenhuma referencia em %s — o servidor sobe, mas toda sintese vai falhar", REF_DIR)
+        log.error("nenhuma referencia em %s: o servidor sobe, mas toda sintese vai falhar", REF_DIR)
     voice = args.voice or (next(iter(refs)) if refs else "")
 
     import torch
@@ -239,7 +176,11 @@ def main():
         log.warning("torch sem CUDA: usando CPU (vai ficar lento)")
         device = "cpu"
 
-    config.update(
+    log.info("carregando o F5-TTS (%s em %s)...", Path(args.ckpt).name, device)
+    model = F5TTS(model=args.model, ckpt_file=args.ckpt, vocab_file=args.vocab, device=device)
+
+    engine = F5Engine(
+        model=model,
         voice=voice,
         speed=args.speed,
         nfe=args.nfe,
@@ -248,20 +189,19 @@ def main():
         ckpt=args.ckpt,
     )
 
-    log.info("carregando o F5-TTS (%s em %s)...", Path(args.ckpt).name, device)
-    global model
-    model = F5TTS(
-        model=args.model,
-        ckpt_file=args.ckpt,
-        vocab_file=args.vocab,
-        device=device,
+    # a primeira sintese carrega o vocoder: aquece antes de aceitar requisicoes
+    if refs:
+        engine.synthesize("ok", voice, 1.0)
+
+    log.info(
+        "F5-TTS no ar em http://%s:%s (referencia %s, %s)",
+        args.host,
+        args.port,
+        voice or "-",
+        device,
     )
 
-    if refs:
-        synthesize("ok", voice, 1.0)  # aquece antes de aceitar requisicoes
-    log.info("F5-TTS no ar em http://%s:%s (referencia %s, %s)", args.host, args.port, voice or "-", device)
-
-    ThreadingHTTPServer((args.host, args.port), Handler).serve_forever()
+    serve(engine, args.host, args.port, log)
 
 
 if __name__ == "__main__":

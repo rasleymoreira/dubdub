@@ -36,7 +36,7 @@ O script cria o `.venv`, instala o `piper-tts`, baixa a voz e sobe o servidor em
 
 Para não deixar o servidor rodando à toa, o popup tem **Ligar servidor** / **Desligar** com
 o estado atual (no ar / desligado / porta). Uma extensão não pode iniciar processos sozinha,
-então isso passa por um *native messaging host* — um script local que o navegador executa
+então isso passa por um _native messaging host_ — um script local que o navegador executa
 sob demanda. Registre uma vez:
 
 ```powershell
@@ -66,7 +66,7 @@ py -3.12 -m venv .venv
 **Use Python 3.11/3.12/3.13.** O `piper-tts` não publica wheel para o 3.14 e o build do
 fonte quebra na variante free-threaded (`Py_LIMITED_API` incompatível com `Py_GIL_DISABLED`).
 
-No popup, em *Ajustes*, o botão **Testar** ao lado do endereço confirma a conexão e lista as
+No popup, em _Ajustes_, o botão **Testar** ao lado do endereço confirma a conexão e lista as
 vozes instaladas. A extensão também fala com servidores compatíveis com a API da OpenAI
 (ex.: `openedai-speech`) — basta apontar a URL para `.../v1/audio/speech`.
 
@@ -76,15 +76,15 @@ em 154 ms), WAV 22 kHz mono a ~43 KB/s. Uma aula de 1 h (~40 min de fala) leva c
 
 ### GPU (CUDA) — medido, e não compensa
 
-Há a opção *Usar GPU (CUDA)* nos ajustes (e `-Cuda` no script), que sobe o servidor com
+Há a opção _Usar GPU (CUDA)_ nos ajustes (e `-Cuda` no script), que sobe o servidor com
 `--cuda`. Ela vem **desligada**, com motivo medido:
 
-| | mediana para 5,89 s de fala |
-|---|---|
-| CPU | **154 ms** (38x tempo real) |
-| CUDA | 171 ms (34x tempo real) |
+|      | mediana para 5,89 s de fala |
+| ---- | --------------------------- |
+| CPU  | **154 ms** (38x tempo real) |
+| CUDA | 171 ms (34x tempo real)     |
 
-Os modelos *medium* do Piper têm 60 MB; a síntese é uma sequência de operações pequenas por
+Os modelos _medium_ do Piper têm 60 MB; a síntese é uma sequência de operações pequenas por
 frase, e a ONNX Runtime insere dezenas de nós de cópia CPU↔GPU no grafo. O overhead engole o
 ganho — GPU compensa em modelos grandes com lote, não aqui.
 
@@ -126,7 +126,7 @@ Há também `tools\start-kokoro.cmd` para duplo clique. Na primeira execução o
 Vozes em pt-BR: `pm_alex` e `pm_santa` (masculinas), `pf_dora` (feminina).
 
 Medido nesta máquina, com o modelo já carregado: **5,4x tempo real** em CPU (10,9 s de fala
-em 2,0 s) — uma aula de 1 h leva ~7 min. Marque *Usar GPU (CUDA)* se instalar o torch com
+em 2,0 s) — uma aula de 1 h leva ~7 min. Marque _Usar GPU (CUDA)_ se instalar o torch com
 CUDA; o servidor cai para CPU sozinho se não houver.
 
 > A pronúncia de termos técnicos em inglês no meio do português (`Unreal Engine`, `server`)
@@ -161,12 +161,12 @@ dublagem depende diretamente da referência: áudio limpo, uma só pessoa faland
 
 **Precisa de GPU.** Medido nesta máquina (RTX 5070, `torch 2.11.0+cu128`, `nfe_step=32`):
 
-| texto | áudio gerado | tempo | chars/s |
-|---|---|---|---|
-| 62 chars | 3,43 s | 2,06 s | 18,1 |
-| 101 chars | 5,55 s | 2,13 s | 18,2 |
-| 55 chars | 3,01 s | 1,93 s | 18,3 |
-| 3 chars (`Ok.`) | 0,52 s | 2,08 s | 5,7 |
+| texto           | áudio gerado | tempo  | chars/s |
+| --------------- | ------------ | ------ | ------- |
+| 62 chars        | 3,43 s       | 2,06 s | 18,1    |
+| 101 chars       | 5,55 s       | 2,13 s | 18,2    |
+| 55 chars        | 3,01 s       | 1,93 s | 18,3    |
+| 3 chars (`Ok.`) | 0,52 s       | 2,08 s | 5,7     |
 
 O custo é **~2 s por trecho, quase independente do tamanho** — o flow matching roda os 32
 passos sobre a sequência inteira e recodifica a referência a cada chamada. Ou seja: uma aula
@@ -182,7 +182,7 @@ original.
 
 ## Voz: Inworld (sem instalar nada)
 
-Selecione **Inworld** em *Voz da dublagem*. A key já vem preenchida e a voz padrão é a
+Selecione **Inworld** em _Voz da dublagem_. A key já vem preenchida e a voz padrão é a
 **Heitor** (masculina, tom neutro). O botão **Testar** lista as vozes em português da conta —
 são 14, entre elas Murilo (masculina), Bruna, Renata, Patricia, Tatiana e Vanessa (femininas
 brasileiras), além das europeias Matilde, Leonor, Beatriz e Madalena.
@@ -200,7 +200,7 @@ idiomas, voz, volumes e gerenciar o cache.
 
 Existe também um painel flutuante dentro da aula (canto inferior direito) com os mesmos
 controles principais, mas ele vem **desligado** para não poluir a tela. Se quiser, ligue em
-*Ajustes → Mostrar painel flutuante na Udemy*.
+_Ajustes → Mostrar painel flutuante na Udemy_.
 
 A geração começa pelo ponto onde o vídeo está — dá pra dar play e ir ouvindo enquanto o
 resto é gerado. Quando termina, a dublagem fica salva: reabrir a aula já toca dublado.
@@ -213,8 +213,8 @@ idioma não refaz a leitura das legendas.
 
 **Texto original** (escolha no popup):
 
-| Deepgram STT | Legendas Udemy |
-|---|---|
+| Deepgram STT                                                       | Legendas Udemy                                 |
+| ------------------------------------------------------------------ | ---------------------------------------------- |
 | `nova-3` transcrevendo o áudio real do vídeo, com timings precisos | VTT em inglês que a Udemy já fornece, de graça |
 
 **Tradução**: Google Translate (endpoint público, sem key) nos dois casos.
@@ -240,15 +240,15 @@ tradução), o texto passa por `src/background/lib/text.js`:
 
 **Voz** (escolha no popup):
 
-| Motor | Qualidade pt-BR | Velocidade | Custo | Requisito |
-|---|---|---|---|---|
-| **Kokoro (local)** | boa, bem mais natural que o Piper | 5,4x tempo real (CPU) | zero | servidor local |
-| **Piper (local)** — padrão | robótica, plana | 38x tempo real (CPU) | zero | servidor local |
-| **F5-TTS (local)** | clona a voz de uma referência | ~3–5x (GPU) | zero | GPU + referência; **não comercial** |
-| **Inworld (Heitor)** | muito boa, neural | ~1,7 s por trecho | por caractere | API key |
-| **ElevenLabs** | a melhor | ~1 s por trecho | créditos | API key com plano ativo |
-| **Google TTS** | robótica | rápida | zero | nenhum |
-| **Deepgram Aura-2** | *não tem português* | rápida | US$ 30/1M chars | usa-se para en/es/de/fr/nl/it/ja |
+| Motor                      | Qualidade pt-BR                   | Velocidade            | Custo           | Requisito                           |
+| -------------------------- | --------------------------------- | --------------------- | --------------- | ----------------------------------- |
+| **Kokoro (local)**         | boa, bem mais natural que o Piper | 5,4x tempo real (CPU) | zero            | servidor local                      |
+| **Piper (local)** — padrão | robótica, plana                   | 38x tempo real (CPU)  | zero            | servidor local                      |
+| **F5-TTS (local)**         | clona a voz de uma referência     | ~3–5x (GPU)           | zero            | GPU + referência; **não comercial** |
+| **Inworld (Heitor)**       | muito boa, neural                 | ~1,7 s por trecho     | por caractere   | API key                             |
+| **ElevenLabs**             | a melhor                          | ~1 s por trecho       | créditos        | API key com plano ativo             |
+| **Google TTS**             | robótica                          | rápida                | zero            | nenhum                              |
+| **Deepgram Aura-2**        | _não tem português_               | rápida                | US$ 30/1M chars | usa-se para en/es/de/fr/nl/it/ja    |
 
 Cache por aula de 1 h: ~110 MB nos locais (WAV), ~21 MB no Inworld e ~15 MB no ElevenLabs (MP3).
 
@@ -261,7 +261,7 @@ cada 100 ms a extensão compara onde a dublagem deveria estar (derivado de
 troca de velocidade sem acumular atraso.
 
 Quando a frase traduzida não cabe no espaço até a próxima fala, a voz é comprimida até o
-limite de *Aceleração máxima* (padrão 1.25x) — que se soma à velocidade do vídeo. O silêncio
+limite de _Aceleração máxima_ (padrão 1.25x) — que se soma à velocidade do vídeo. O silêncio
 entre as falas conta como espaço útil, então na maioria dos trechos não há compressão nenhuma.
 
 ### Adiantar as próximas aulas
@@ -269,7 +269,7 @@ entre as falas conta como espaço útil, então na maioria dos trechos não há 
 Terminada a aula atual, a extensão lê o currículo do curso (API
 `subscriber-curriculum-items`, com fallback para o menu lateral), pula as aulas que já têm
 dublagem e dubla as **N próximas** (padrão 2, configurável de 0 a 5). Quando você avança, o
-áudio já está pronto. O painel mostra `Adiantando: <nome da aula>`. Clicar em *Dublar* na
+áudio já está pronto. O painel mostra `Adiantando: <nome da aula>`. Clicar em _Dublar_ na
 aula atual interrompe a fila e dá prioridade ao que você está assistindo.
 
 ## Limitações reais (importante)
@@ -293,12 +293,12 @@ aula atual interrompe a fila e dá prioridade ao que você está assistindo.
 - **Aula sem legenda em inglês e com DRM** não tem como ser dublada — o painel avisa.
 - Os endpoints do Google são os públicos (sem key): há throttle, retry com backoff e no
   máximo 2 requisições simultâneas. Em aulas longas pode aparecer 429 esporádico; os trechos
-  que falharem são contados no painel e clicar em *Dublar* de novo refaz só o que faltou.
+  que falharem são contados no painel e clicar em _Dublar_ de novo refaz só o que faltou.
 - **Disco**: o Piper devolve WAV (~44 KB/s), então uma aula de 1 h pode passar de 100 MB. Por
   isso o cache guarda no máximo 8 aulas por padrão (ajustável) e descarta as mais antigas. O
   popup mostra o total usado e permite apagar por aula ou tudo.
 - A dublagem controla o volume do áudio original enquanto está ativa — use o slider
-  *Original* do painel (não o volume da Udemy) para deixar a voz em inglês ao fundo.
+  _Original_ do painel (não o volume da Udemy) para deixar a voz em inglês ao fundo.
 
 ## Estrutura
 
@@ -359,25 +359,25 @@ media_sources, a lista de aulas e o que seria adiantado.
 
 ## Ajustes disponíveis
 
-| Ajuste | Padrão | O que faz |
-|---|---|---|
-| Texto original | Deepgram STT | ou legendas da Udemy |
-| Voz da dublagem | Piper (local) | Kokoro / Piper / F5-TTS / Inworld / ElevenLabs / Google / Deepgram |
-| Servidor Kokoro | `http://localhost:5001` | com Ligar/Desligar e teste no popup |
-| Voz do Kokoro | `pm_alex` | `pm_santa` (masculina) ou `pf_dora` (feminina) |
-| Servidor F5-TTS | `http://localhost:5002` | idem; a "voz" é a referência em `models\f5-ref` |
-| Voz do Inworld | `Heitor` | 14 vozes em português, listadas pelo botão Testar |
-| Modelo do Inworld | `inworld-tts-2` | ou TTS-2 Flash / TTS-1 / TTS-1 Max |
-| Idioma do vídeo / Dublar para | en / pt-BR | também aceita detectar automaticamente |
-| Servidor Piper | `http://localhost:5000` | com botão de teste e lista de vozes instaladas |
-| Voz do Piper | `pt_BR-faber-medium` | qualquer voz instalada no servidor |
-| Volume do áudio original | 0% | 10–20% mantém a voz original ao fundo |
-| Volume da dublagem | 100% | |
-| Aceleração máxima da voz | 1.25x | limite de compressão para caber no tempo da fala |
-| Adiantar próximas aulas | 2 | 0 a 5 |
-| Aulas no cache | 8 | descarta as mais antigas |
-| Aplicar ao abrir aula dublada | ligado | |
-| Dublar automaticamente aulas novas | desligado | |
-| Gerar primeiro do ponto atual | ligado | permite ouvir antes de terminar |
-| Usar GPU (CUDA) no Piper | desligado | medido: CPU é mais rápida nestes modelos |
-| Mostrar painel flutuante | **desligado** | o painel dentro da aula; o popup faz o mesmo |
+| Ajuste                             | Padrão                  | O que faz                                                          |
+| ---------------------------------- | ----------------------- | ------------------------------------------------------------------ |
+| Texto original                     | Deepgram STT            | ou legendas da Udemy                                               |
+| Voz da dublagem                    | Piper (local)           | Kokoro / Piper / F5-TTS / Inworld / ElevenLabs / Google / Deepgram |
+| Servidor Kokoro                    | `http://localhost:5001` | com Ligar/Desligar e teste no popup                                |
+| Voz do Kokoro                      | `pm_alex`               | `pm_santa` (masculina) ou `pf_dora` (feminina)                     |
+| Servidor F5-TTS                    | `http://localhost:5002` | idem; a "voz" é a referência em `models\f5-ref`                    |
+| Voz do Inworld                     | `Heitor`                | 14 vozes em português, listadas pelo botão Testar                  |
+| Modelo do Inworld                  | `inworld-tts-2`         | ou TTS-2 Flash / TTS-1 / TTS-1 Max                                 |
+| Idioma do vídeo / Dublar para      | en / pt-BR              | também aceita detectar automaticamente                             |
+| Servidor Piper                     | `http://localhost:5000` | com botão de teste e lista de vozes instaladas                     |
+| Voz do Piper                       | `pt_BR-faber-medium`    | qualquer voz instalada no servidor                                 |
+| Volume do áudio original           | 0%                      | 10–20% mantém a voz original ao fundo                              |
+| Volume da dublagem                 | 100%                    |                                                                    |
+| Aceleração máxima da voz           | 1.25x                   | limite de compressão para caber no tempo da fala                   |
+| Adiantar próximas aulas            | 2                       | 0 a 5                                                              |
+| Aulas no cache                     | 8                       | descarta as mais antigas                                           |
+| Aplicar ao abrir aula dublada      | ligado                  |                                                                    |
+| Dublar automaticamente aulas novas | desligado               |                                                                    |
+| Gerar primeiro do ponto atual      | ligado                  | permite ouvir antes de terminar                                    |
+| Usar GPU (CUDA) no Piper           | desligado               | medido: CPU é mais rápida nestes modelos                           |
+| Mostrar painel flutuante           | **desligado**           | o painel dentro da aula; o popup faz o mesmo                       |

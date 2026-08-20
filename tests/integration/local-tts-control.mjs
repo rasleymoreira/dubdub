@@ -57,7 +57,8 @@ function call(message) {
     child.on('close', () => {
       clearTimeout(timer);
       const buffer = Buffer.concat(chunks);
-      if (buffer.length < 4) return reject(new Error('resposta vazia. stderr: ' + stderr.slice(0, 300)));
+      if (buffer.length < 4)
+        return reject(new Error('resposta vazia. stderr: ' + stderr.slice(0, 300)));
       const length = buffer.readUInt32LE(0);
       resolve(JSON.parse(buffer.subarray(4, 4 + length).toString('utf8')));
     });
@@ -67,16 +68,31 @@ function call(message) {
 console.log('motor:', ENGINE, '| porta:', PORT, '| voz:', VOICE || '(padrao do servidor)');
 
 const inicial = await call({ action: 'status', engine: ENGINE, port: PORT });
-check('status responde no formato esperado', inicial.ok === true && 'running' in inicial, JSON.stringify(inicial));
+check(
+  'status responde no formato esperado',
+  inicial.ok === true && 'running' in inicial,
+  JSON.stringify(inicial)
+);
 
 if (inicial.running) {
   const parado = await call({ action: 'stop', engine: ENGINE, port: PORT });
-  check('stop desliga o servidor', parado.ok === true && parado.running === false, JSON.stringify(parado));
-  check('status confirma desligado', (await call({ action: 'status', engine: ENGINE, port: PORT })).running === false);
+  check(
+    'stop desliga o servidor',
+    parado.ok === true && parado.running === false,
+    JSON.stringify(parado)
+  );
+  check(
+    'status confirma desligado',
+    (await call({ action: 'status', engine: ENGINE, port: PORT })).running === false
+  );
 }
 
 const ligado = await call({ action: 'start', engine: ENGINE, voice: VOICE, port: PORT });
-check('start sobe o servidor', ligado.ok === true && ligado.running === true, JSON.stringify(ligado));
+check(
+  'start sobe o servidor',
+  ligado.ok === true && ligado.running === true,
+  JSON.stringify(ligado)
+);
 
 const rodando = await call({ action: 'status', engine: ENGINE, port: PORT });
 check('status confirma ligado', rodando.running === true, 'pid=' + rodando.pid);
@@ -84,7 +100,12 @@ check('status confirma ligado', rodando.running === true, 'pid=' + rodando.pid);
 const denovo = await call({ action: 'start', engine: ENGINE, voice: VOICE, port: PORT });
 check('start com servidor ja no ar nao duplica', denovo.already === true, JSON.stringify(denovo));
 
-const invalida = await call({ action: 'start', engine: ENGINE, voice: 'nao; existe', port: PORT + 100 });
+const invalida = await call({
+  action: 'start',
+  engine: ENGINE,
+  voice: 'nao; existe',
+  port: PORT + 100
+});
 check('recusa nome de voz invalido', invalida.ok === false, invalida.error);
 
 console.log(fails ? '\n' + fails + ' falha(s)' : '\nTodos os testes passaram');

@@ -1,12 +1,9 @@
 """
-Servidor HTTP do Kokoro TTS no mesmo contrato do piper.http_server, para a
-extensao falar com os dois sem cliente separado.
+Servidor HTTP do Kokoro TTS.
 
-    POST /synthesize   {"text": "...", "voice": "pm_alex", "speed": 1.0}  -> WAV
-    POST /             corpo em text/plain                                 -> WAV
-    GET  /?text=...                                                        -> WAV
-    GET  /voices       lista de vozes do idioma carregado                   -> JSON
-    GET  /info         idioma, voz padrao e dispositivo em uso              -> JSON
+As rotas e o formato de resposta vem de tts_http_contract; aqui fica so o que e
+proprio do Kokoro. O contrato compartilhado e o mesmo do piper.http_server, o
+que permite a extensao falar com os tres motores locais usando um cliente so.
 
 Uso:
     .venv-kokoro\\Scripts\\python.exe tools\\kokoro_server.py --port 5001
@@ -15,20 +12,17 @@ Uso:
 """
 
 import argparse
-import io
-import json
 import logging
 import threading
-import wave
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from urllib.parse import parse_qs, urlparse
 
 import numpy as np
 from kokoro import KPipeline
 
+from tts_http_contract import TtsEngine, pcm_to_wav, serve
+
 SAMPLE_RATE = 24000
 
-# O catalogo do Kokoro por idioma; 'p' = portugues do Brasil.
+# O catalogo do Kokoro por idioma; p = portugues do Brasil.
 VOICES = {
     "p": ["pm_alex", "pm_santa", "pf_dora"],
     "a": ["af_heart", "af_bella", "am_michael", "am_puck"],
@@ -37,129 +31,60 @@ VOICES = {
 
 log = logging.getLogger("kokoro-server")
 
-# A inferencia nao e thread-safe: serializamos as requisicoes.
-lock = threading.Lock()
-pipeline = None
-config = {}
 
+class KokoroEngine(TtsEngine):
+    name = "kokoro"
 
-def build_pipeline(lang: str, device: str):
-    """Cria o pipeline, caindo para CPU se o dispositivo pedido nao servir."""
-    try:
-        pipe = KPipeline(lang_code=lang, device=device)
-        return pipe, device
-    except Exception as error:  # torch sem CUDA, VRAM insuficiente, etc.
-        if device != "cpu":
+    def __init__(self, lang: str, voice: str, speed: float, device: str):
+        self.lang = lang
+        self.default_voice = voice
+        self.default_speed = speed
+        # a inferencia nao e thread-safe: serializamos as requisicoes
+        self._lock = threading.Lock()
+        self._pipeline, self.device = self._build(lang, device)
+
+    def _build(self, lang: str, device: str):
+        """Cria o pipeline, caindo para CPU se o dispositivo pedido nao servir."""
+        try:
+            return KPipeline(lang_code=lang, device=device), device
+        except Exception as error:  # noqa: BLE001 - torch sem CUDA, VRAM insuficiente
+            if device == "cpu":
+                raise
             log.warning("dispositivo %s indisponivel (%s); usando CPU", device, error)
             return KPipeline(lang_code=lang, device="cpu"), "cpu"
-        raise
 
-
-def actual_device() -> str:
-    try:
-        return str(next(pipeline.model.parameters()).device)
-    except Exception:
-        return config.get("device", "?")
-
-
-def synthesize(text: str, voice: str, speed: float) -> bytes:
-    """Devolve um WAV PCM 16 bits, 24 kHz, mono."""
-    with lock:
-        chunks = [result.audio for result in pipeline(text, voice=voice, speed=speed)]
-
-    if not chunks:
-        raise ValueError("texto nao gerou audio")
-
-    audio = np.concatenate([np.asarray(c.numpy() if hasattr(c, "numpy") else c, dtype=np.float32) for c in chunks])
-    pcm = np.clip(audio, -1.0, 1.0)
-    pcm = (pcm * 32767.0).astype("<i2")
-
-    buffer = io.BytesIO()
-    with wave.open(buffer, "wb") as out:
-        out.setnchannels(1)
-        out.setsampwidth(2)
-        out.setframerate(SAMPLE_RATE)
-        out.writeframes(pcm.tobytes())
-    return buffer.getvalue()
-
-
-class Handler(BaseHTTPRequestHandler):
-    protocol_version = "HTTP/1.1"
-
-    def log_message(self, fmt, *args):  # silencia o log por requisicao
-        pass
-
-    # ------------------------------------------------------------------ helpers
-    def _send(self, status: int, body: bytes, content_type: str):
-        self.send_response(status)
-        self.send_header("Content-Type", content_type)
-        self.send_header("Content-Length", str(len(body)))
-        self.send_header("Access-Control-Allow-Origin", "*")
-        self.end_headers()
-        self.wfile.write(body)
-
-    def _json(self, status: int, payload):
-        self._send(status, json.dumps(payload).encode("utf-8"), "application/json")
-
-    def _audio(self, text: str, voice: str, speed: float):
-        text = (text or "").strip()
-        if not text:
-            return self._json(400, {"error": "texto vazio"})
-        voice = voice or config["voice"]
+    def actual_device(self) -> str:
         try:
-            wav = synthesize(text, voice, speed)
-        except Exception as error:
-            log.exception("falha ao sintetizar")
-            return self._json(500, {"error": str(error)})
-        self._send(200, wav, "audio/wav")
+            return str(next(self._pipeline.model.parameters()).device)
+        except Exception:  # noqa: BLE001 - so informativo
+            return self.device
 
-    # ------------------------------------------------------------------ rotas
-    def do_GET(self):
-        route = urlparse(self.path)
-        if route.path.rstrip("/") == "/voices":
-            return self._json(200, {"voices": VOICES.get(config["lang"], [])})
-        if route.path.rstrip("/") == "/info":
-            return self._json(
-                200,
-                {
-                    "engine": "kokoro",
-                    "lang": config["lang"],
-                    "voice": config["voice"],
-                    "device": actual_device(),
-                    "sample_rate": SAMPLE_RATE,
-                },
-            )
+    def synthesize(self, text: str, voice: str, speed: float) -> bytes:
+        with self._lock:
+            chunks = [result.audio for result in self._pipeline(text, voice=voice, speed=speed)]
 
-        query = parse_qs(route.query)
-        if "text" in query:
-            return self._audio(
-                query["text"][0],
-                (query.get("voice") or [config["voice"]])[0],
-                float((query.get("speed") or [config["speed"]])[0]),
-            )
-        return self._json(404, {"error": "use GET /?text=... ou POST /synthesize"})
+        if not chunks:
+            raise ValueError("texto nao gerou audio")
 
-    def do_POST(self):
-        length = int(self.headers.get("Content-Length") or 0)
-        raw = self.rfile.read(length) if length else b""
-        route = urlparse(self.path).path.rstrip("/")
+        audio = np.concatenate(
+            [
+                np.asarray(chunk.numpy() if hasattr(chunk, "numpy") else chunk, dtype=np.float32)
+                for chunk in chunks
+            ]
+        )
+        return pcm_to_wav(audio, SAMPLE_RATE)
 
-        if route in ("/synthesize", "/tts", "/api/tts"):
-            try:
-                payload = json.loads(raw.decode("utf-8") or "{}")
-            except json.JSONDecodeError:
-                return self._json(400, {"error": "JSON invalido"})
-            return self._audio(
-                payload.get("text") or payload.get("input") or "",
-                payload.get("voice") or config["voice"],
-                float(payload.get("speed") or config["speed"]),
-            )
+    def list_voices(self) -> list:
+        return VOICES.get(self.lang, [])
 
-        if route in ("", "/"):
-            # compatibilidade com o piper.http_server: corpo em texto puro
-            return self._audio(raw.decode("utf-8", "replace"), config["voice"], config["speed"])
-
-        return self._json(404, {"error": "rota desconhecida"})
+    def describe(self) -> dict:
+        return {
+            "engine": self.name,
+            "lang": self.lang,
+            "voice": self.default_voice,
+            "device": self.actual_device(),
+            "sample_rate": SAMPLE_RATE,
+        }
 
 
 def main():
@@ -173,18 +98,21 @@ def main():
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
-
-    global pipeline
-    config.update(lang=args.lang, voice=args.voice, speed=args.speed, device=args.device)
     log.info("carregando o Kokoro (idioma %s, dispositivo %s)...", args.lang, args.device)
-    pipeline, used = build_pipeline(args.lang, args.device)
-    config["device"] = used
 
-    # primeira sintese e mais lenta: aquece antes de aceitar requisicoes
-    synthesize("ok", args.voice, 1.0)
-    log.info("Kokoro no ar em http://%s:%s (voz %s, %s)", args.host, args.port, args.voice, actual_device())
+    engine = KokoroEngine(args.lang, args.voice, args.speed, args.device)
 
-    ThreadingHTTPServer((args.host, args.port), Handler).serve_forever()
+    # a primeira sintese e bem mais lenta: aquece antes de aceitar requisicoes
+    engine.synthesize("ok", args.voice, 1.0)
+    log.info(
+        "Kokoro no ar em http://%s:%s (voz %s, %s)",
+        args.host,
+        args.port,
+        args.voice,
+        engine.actual_device(),
+    )
+
+    serve(engine, args.host, args.port, log)
 
 
 if __name__ == "__main__":

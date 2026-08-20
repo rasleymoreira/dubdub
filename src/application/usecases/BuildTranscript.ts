@@ -115,9 +115,7 @@ export class BuildTranscript {
     return primary ? [primary, ...free] : free;
   }
 
-  private async runChain(
-    input: BuildTranscriptInput
-  ): Promise<{
+  private async runChain(input: BuildTranscriptInput): Promise<{
     segments: readonly SourceSegment[];
     origin: TranscriptOrigin;
     notes: string[];

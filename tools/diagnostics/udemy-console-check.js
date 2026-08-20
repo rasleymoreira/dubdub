@@ -19,7 +19,8 @@
 
   // --- id do curso: as mesmas heuristicas da extensao, em ordem
   const strategies = {
-    'data-clp-course-id': () => document.querySelector('[data-clp-course-id]')?.getAttribute('data-clp-course-id'),
+    'data-clp-course-id': () =>
+      document.querySelector('[data-clp-course-id]')?.getAttribute('data-clp-course-id'),
     'data-module-args': () => {
       for (const node of document.querySelectorAll('[data-module-args]')) {
         try {
@@ -39,7 +40,11 @@
     },
     'regex no html': () => {
       const html = document.documentElement.innerHTML;
-      for (const p of [/"courseId"\s*:\s*"?(\d+)/, /"course_id"\s*:\s*"?(\d+)/, /data-course-id="(\d+)"/]) {
+      for (const p of [
+        /"courseId"\s*:\s*"?(\d+)/,
+        /"course_id"\s*:\s*"?(\d+)/,
+        /data-course-id="(\d+)"/
+      ]) {
         const m = p.exec(html);
         if (m) return m[1];
       }
@@ -50,7 +55,8 @@
   for (const [name, fn] of Object.entries(strategies)) found[name] = fn();
   out('courseId por estrategia', found);
   const courseId = Object.values(found).find(Boolean);
-  if (!courseId) return console.error('Nenhuma estrategia achou o courseId — me avise para eu adicionar outra.');
+  if (!courseId)
+    return console.error('Nenhuma estrategia achou o courseId — me avise para eu adicionar outra.');
 
   const api = (url) =>
     fetch(url, {
@@ -72,7 +78,11 @@
     out('tipo do asset', asset.asset_type);
     out(
       'legendas',
-      (asset.captions || []).map((c) => ({ locale: c.locale_id || c.locale?.locale, label: c.video_label, url: !!c.url }))
+      (asset.captions || []).map((c) => ({
+        locale: c.locale_id || c.locale?.locale,
+        label: c.video_label,
+        url: !!c.url
+      }))
     );
     out(
       'media_sources (Deepgram precisa de mp4)',
@@ -96,12 +106,17 @@
       'fields[chapter]': 'id,title,object_index',
       'fields[asset]': 'asset_type'
     });
-    const data = await api(`${location.origin}/api-2.0/courses/${courseId}/subscriber-curriculum-items/?${params}`);
+    const data = await api(
+      `${location.origin}/api-2.0/courses/${courseId}/subscriber-curriculum-items/?${params}`
+    );
     let section = '';
     const lectures = [];
     for (const item of data.results || []) {
       if (item._class === 'chapter') section = item.title;
-      else if (item._class === 'lecture' && (!item.asset?.asset_type || item.asset.asset_type === 'Video')) {
+      else if (
+        item._class === 'lecture' &&
+        (!item.asset?.asset_type || item.asset.asset_type === 'Video')
+      ) {
         lectures.push({ lectureId: String(item.id), title: item.title, section });
       }
     }
@@ -117,9 +132,18 @@
   const video = [...document.querySelectorAll('video')].sort(
     (a, b) => b.getBoundingClientRect().width - a.getBoundingClientRect().width
   )[0];
-  out('video encontrado', video ? { duration: video.duration, rate: video.playbackRate, volume: video.volume } : null);
+  out(
+    'video encontrado',
+    video ? { duration: video.duration, rate: video.playbackRate, volume: video.volume } : null
+  );
   out(
     'text tracks no player',
-    video ? [...video.textTracks].map((t) => ({ lang: t.language, mode: t.mode, cues: t.cues?.length || 0 })) : []
+    video
+      ? [...video.textTracks].map((t) => ({
+          lang: t.language,
+          mode: t.mode,
+          cues: t.cues?.length || 0
+        }))
+      : []
   );
 })();

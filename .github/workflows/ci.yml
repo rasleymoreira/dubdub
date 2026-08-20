@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+# Um push novo cancela a execucao anterior do mesmo branch.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # o runner de teste e o type stripping usados aqui sao nativos do Node 22
+          node-version: '22'
+          cache: npm
+
+      - run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Formatacao
+        run: npm run format:check
+
+      - name: Type-check
+        run: npm run typecheck
+
+      # So a suite unitaria: deterministica, sem rede e sem credencial.
+      # Os testes de integracao rodam localmente, com npm run test:integration.
+      - name: Testes unitarios
+        run: npm run test:unit
+
+      - name: Build
+        run: npm run build
+
+      - name: Conferir a extensao gerada
+        run: |
+          test -f build/manifest.json
+          test -f build/service-worker.js
+          test -f build/content.js
+          test -f build/popup/popup.html
+          test -f tools/native-host/engines.generated.json
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: extensao
+          path: build/
+          retention-days: 7

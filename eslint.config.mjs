@@ -97,8 +97,14 @@ export default tseslint.config(
         { name: 'fetch', message: 'fetch e detalhe de infraestrutura: use uma porta.' },
         { name: 'document', message: 'DOM e detalhe de apresentacao: use uma porta.' },
         { name: 'window', message: 'DOM e detalhe de apresentacao: use uma porta.' },
-        { name: 'indexedDB', message: 'IndexedDB e detalhe de infraestrutura: use um repositorio.' },
-        { name: 'localStorage', message: 'Armazenamento e detalhe de infraestrutura: use uma porta.' }
+        {
+          name: 'indexedDB',
+          message: 'IndexedDB e detalhe de infraestrutura: use um repositorio.'
+        },
+        {
+          name: 'localStorage',
+          message: 'Armazenamento e detalhe de infraestrutura: use uma porta.'
+        }
       ]
     }
   },

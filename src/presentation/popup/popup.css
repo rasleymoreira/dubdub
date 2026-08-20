@@ -24,7 +24,11 @@ body {
   padding: 0 10px 12px;
   background: var(--background);
   color: var(--text);
-  font: 13px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+  font:
+    13px/1.5 system-ui,
+    -apple-system,
+    'Segoe UI',
+    sans-serif;
 }
 
 .head {
@@ -107,7 +111,7 @@ details.card > summary {
 }
 
 details.card > summary::before {
-  content: "\25B8";
+  content: '\25B8';
   color: var(--muted);
   transition: transform 0.15s ease;
 }
@@ -141,14 +145,16 @@ details.card[open] > summary::before {
   border-radius: 6px;
   padding: 6px 8px;
   cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
 }
 
 .segmented button:hover {
   color: var(--text);
 }
 
-.segmented button[aria-pressed="true"] {
+.segmented button[aria-pressed='true'] {
   background: var(--primary);
   color: #fff;
   font-weight: 600;
@@ -188,20 +194,20 @@ details.card[open] > summary::before {
   flex: none;
 }
 
-.dot[data-state="working"] {
+.dot[data-state='working'] {
   background: var(--warning);
   animation: pulse 1.2s infinite;
 }
 
-.dot[data-state="ready"] {
+.dot[data-state='ready'] {
   background: var(--success);
 }
 
-.dot[data-state="on"] {
+.dot[data-state='on'] {
   background: var(--primary);
 }
 
-.dot[data-state="error"] {
+.dot[data-state='error'] {
   background: var(--error);
 }
 
@@ -252,7 +258,9 @@ details.card[open] > summary::before {
   cursor: pointer;
   flex: 1;
   min-height: 34px;
-  transition: background 0.15s ease, border-color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
 }
 
 .btn:hover:not(:disabled) {
@@ -328,8 +336,8 @@ details.card[open] > summary::before {
 }
 
 select,
-input[type="password"],
-input[type="text"] {
+input[type='password'],
+input[type='text'] {
   font: inherit;
   font-size: 12px;
   color: var(--text);
@@ -353,7 +361,7 @@ input:focus {
   gap: 6px;
 }
 
-input[type="range"] {
+input[type='range'] {
   width: 100%;
   accent-color: var(--primary);
 }
