@@ -37,6 +37,25 @@ aba da Udemy.
 
 **Rode `npm run verify` antes de abrir um PR.** É o que a CI executa.
 
+## Ícones
+
+A arte original de 512x512 fica em `assets/icon.png`, fora de `icons/` porque o build copia
+`icons/` inteiro para dentro da extensão e o arquivo de origem não precisa ser distribuído.
+
+Para trocar o ícone, substitua `assets/icon.png` e rode:
+
+```powershell
+.\tools\generate-icons.ps1
+```
+
+O script reamostra os quatro tamanhos que o `manifest.json` declara — 16, 32, 48 e 128 — com
+bicúbica de alta qualidade e transparência preservada. Confira o resultado em **16px**: é o
+tamanho que aparece na barra do Chrome e o primeiro a perder legibilidade. Arte com muitos
+elementos separados vira um borrão nesse tamanho.
+
+O popup usa `icons/icon128.png` renderizado a 28px no cabeçalho, então o logo ao lado do título
+e o ícone da barra são sempre o mesmo arquivo.
+
 ## Testes
 
 Duas suítes, com propósitos diferentes:
